@@ -1,0 +1,51 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: roundcoach-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: roundcoach
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d roundcoach']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: roundcoach-redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: roundcoach-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/roundcoach?schema=public
+      JWT_SECRET: super-secret-change-me
+      JWT_EXPIRES_IN: 1d
+      APP_NAME: RoundCoach API
+      CORS_ORIGIN: http://localhost:3001
+      QUEUE_PROVIDER: bullmq
+      REDIS_URL: redis://redis:6379
+      QUEUE_NAME: vod-processing
+      INTERNAL_API_TOKEN: roundcoach-internal-dev-token
+    ports:
+      - '3000:3000'
+
+volumes:
+  postgres_data:

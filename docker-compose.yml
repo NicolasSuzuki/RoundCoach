@@ -1,0 +1,118 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: roundcoach-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: roundcoach
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d roundcoach']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: roundcoach-redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ./roundcoach-api
+      dockerfile: Dockerfile
+    container_name: roundcoach-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/roundcoach?schema=public
+      JWT_SECRET: super-secret-change-me
+      JWT_EXPIRES_IN: 1d
+      APP_NAME: RoundCoach API
+      CORS_ORIGIN: http://localhost:5173
+      QUEUE_PROVIDER: bullmq
+      REDIS_URL: redis://redis:6379
+      QUEUE_NAME: vod-processing
+      INTERNAL_API_TOKEN: roundcoach-internal-dev-token
+      RIOT_API_KEY: ${RIOT_API_KEY:-}
+      RIOT_API_REGION: ${RIOT_API_REGION:-eu}
+    ports:
+      - '3000:3000'
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/api/v1/health').then((response)=>process.exit(response.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  web:
+    build:
+      context: ./roundcoach-web
+      dockerfile: Dockerfile
+    container_name: roundcoach-web
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      VITE_API_URL: http://localhost:3000/api/v1
+    ports:
+      - '5173:5173'
+
+  worker:
+    build:
+      context: ./roundcoach-worker
+      dockerfile: Dockerfile
+    container_name: roundcoach-worker
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    environment:
+      PORT: 3002
+      REDIS_URL: redis://redis:6379
+      QUEUE_NAME: vod-processing
+      API_BASE_URL: http://api:3000/api/v1
+      INTERNAL_API_TOKEN: roundcoach-internal-dev-token
+      WORKER_CONCURRENCY: 2
+      PROCESSING_DELAY_MS: 3000
+    ports:
+      - '3002:3002'
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3002/health').then((response)=>process.exit(response.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  postgres_data:

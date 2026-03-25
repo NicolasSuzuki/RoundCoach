@@ -1,0 +1,15 @@
+{
+  "name": "roundcoach-workspace",
+  "private": true,
+  "scripts": {
+    "up": "docker compose up --build",
+    "up:detached": "docker compose up --build -d",
+    "bootstrap": "npm run up:detached && npm run migrate",
+    "down": "docker compose down",
+    "logs": "docker compose logs -f",
+    "reset": "docker compose down -v --remove-orphans",
+    "migrate": "docker compose exec api npx prisma migrate deploy",
+    "ps": "docker compose ps",
+    "quality:check": "npm --prefix roundcoach-api run lint && npm --prefix roundcoach-api test && npm --prefix roundcoach-api run build && npm --prefix roundcoach-worker run lint && npm --prefix roundcoach-worker run build && npm --prefix roundcoach-web run lint && npm --prefix roundcoach-web run build"
+  }
+}

@@ -1,0 +1,103 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum MatchResult {
+  WIN
+  LOSS
+}
+
+enum VodStatus {
+  UPLOADED
+  PROCESSING
+  PROCESSED
+  FAILED
+}
+
+enum AnalysisProcessingStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  currentRank  String?
+  currentGoal  String?
+  mainAgents   String[]
+  mainRole     String?
+  currentFocus String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  matches Match[]
+  vods    Vod[]
+}
+
+model Match {
+  id        String      @id @default(cuid())
+  userId    String
+  map       String
+  agent     String
+  result    MatchResult
+  score     String
+  matchDate DateTime
+  notes     String?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vod      Vod?
+  analysis Analysis?
+
+  @@index([userId])
+  @@index([matchDate])
+}
+
+model Vod {
+  id              String    @id @default(cuid())
+  userId          String
+  matchId         String?   @unique
+  fileName        String
+  fileUrl         String
+  durationSeconds Int?
+  status          VodStatus @default(UPLOADED)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  match    Match?    @relation(fields: [matchId], references: [id], onDelete: SetNull)
+  analysis Analysis?
+
+  @@index([userId])
+  @@index([status])
+}
+
+model Analysis {
+  id                  String                   @id @default(cuid())
+  matchId             String                   @unique
+  vodId               String?                  @unique
+  processingStatus    AnalysisProcessingStatus @default(PENDING)
+  deathsFirst         Int?
+  entryKills          Int?
+  avgCrosshairScore   Float?
+  utilityUsageScore   Float?
+  positioningScore    Float?
+  summary             String?
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+
+  match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  vod   Vod?  @relation(fields: [vodId], references: [id], onDelete: SetNull)
+
+  @@index([processingStatus])
+}
