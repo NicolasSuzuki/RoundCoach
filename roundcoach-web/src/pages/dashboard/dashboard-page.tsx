@@ -32,6 +32,7 @@ const metricLabels: Record<string, string> = {
   utility: 'Uso de utilidade',
   crosshair: 'Crosshair',
   survival: 'Sobrevivencia inicial',
+  consistency: 'Consistencia',
   entry: 'Entrada e abertura',
   no_data: 'Sem dados ainda',
 };
@@ -40,6 +41,18 @@ const trendLabels: Record<'up' | 'down' | 'stable', string> = {
   up: 'Subindo',
   down: 'Caindo',
   stable: 'Estavel',
+};
+
+const trainingTrendLabels: Record<string, string> = {
+  improving: 'Em evolucao',
+  stable: 'Estavel',
+  declining: 'Pedindo ajuste',
+};
+
+const trainingIntensityLabels: Record<string, string> = {
+  low: 'Carga leve',
+  medium: 'Carga media',
+  high: 'Carga alta',
 };
 
 export function DashboardPage() {
@@ -58,7 +71,13 @@ export function DashboardPage() {
     queryFn: dashboardService.getEvolution,
   });
 
+  const trainingPlanQuery = useQuery({
+    queryKey: ['dashboard', 'training-plan'],
+    queryFn: dashboardService.getTrainingPlan,
+  });
+
   const summary = summaryQuery.data;
+  const trainingPlan = trainingPlanQuery.data;
   const totalMatches = matchesQuery.data?.meta.total ?? 0;
   const hasAnalysedMatches = (summary?.totalAnalysedMatches ?? 0) > 0;
   const isFirstRun = !matchesQuery.isLoading && totalMatches === 0;
@@ -82,7 +101,7 @@ export function DashboardPage() {
             <p className="mt-3 max-w-2xl text-sm text-sand/70">
               {isFirstRun
                 ? 'Crie uma partida, adicione um VOD e processe a analise para liberar seu painel de progresso.'
-                : 'Score medio, tendencia por partida, principal fraqueza e treino sugerido na mesma tela.'}
+                : 'Score medio, tendencia, leitura do momento e treino acionavel na mesma tela.'}
             </p>
           </div>
           <Link
@@ -149,7 +168,7 @@ export function DashboardPage() {
             <div className="rounded-[24px] bg-sand/70 p-5">
               <p className="text-sm font-semibold text-ink">3. Veja a leitura</p>
               <p className="mt-2 text-sm text-ink/70">
-                O dashboard e a tela da partida passam a mostrar progresso e foco.
+                O dashboard e a tela da partida passam a mostrar progresso, foco e treino.
               </p>
             </div>
           </div>
@@ -191,7 +210,11 @@ export function DashboardPage() {
         <Card>
           <p className="text-sm text-ink/60">Foco atual</p>
           <p className="mt-4 text-lg font-semibold text-ink">
-            {summary ? focusLabels[summary.focusSuggestion] ?? summary.focusSuggestion : '--'}
+            {trainingPlan
+              ? metricLabels[trainingPlan.focusArea] ?? trainingPlan.focusArea
+              : summary
+                ? focusLabels[summary.focusSuggestion] ?? summary.focusSuggestion
+                : '--'}
           </p>
           <div className="mt-3">
             <StatusBadge
@@ -237,65 +260,172 @@ export function DashboardPage() {
         ) : null}
       </Card>
 
-      <div className="grid gap-6 lg:grid-cols-[1.1fr,0.9fr]">
-        <Card>
-          <p className="text-xs uppercase tracking-[0.22em] text-ember">
-            Observacao geral
-          </p>
-          <h2 className="mt-2 text-2xl font-bold text-ink">
-            O que mais pede atencao agora
-          </h2>
-          <p className="mt-4 text-base leading-7 text-ink/80">
-            {summary?.observation ??
-              'Processe mais partidas para liberar um insight mais claro sobre sua evolucao.'}
-          </p>
-          <div className="mt-6 grid gap-3 sm:grid-cols-2">
-            <InsightBox
-              label="Principal fraqueza"
-              value={metricLabels[summary?.mainWeakness ?? 'no_data'] ?? '--'}
-            />
-            <InsightBox
-              label="Principal forca"
-              value={metricLabels[summary?.mainStrength ?? 'no_data'] ?? '--'}
-            />
-            <InsightBox
-              label="Area da semana"
-              value={metricLabels[summary?.weeklyWeakness ?? 'no_data'] ?? '--'}
-            />
-            <InsightBox
-              label="Forca recorrente"
-              value={metricLabels[summary?.recurringStrength ?? 'no_data'] ?? '--'}
-            />
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,0.92fr),minmax(0,1.28fr)]">
+        <Card className="overflow-hidden">
+          <div className="flex h-full flex-col">
+            <p className="text-xs uppercase tracking-[0.22em] text-ember">
+              Diagnostico agregado
+            </p>
+            <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-bold text-ink">
+                  Leitura das ultimas {summary?.totalAnalysedMatches ?? 0} partidas
+                </h2>
+                <p className="mt-2 text-sm text-ink/55">
+                  Prioridade calculada pelo historico recente, tendencia e consistencia.
+                </p>
+              </div>
+              <StatusBadge
+                value={summary ? trendLabels[summary.trend] : 'PENDING'}
+              />
+            </div>
+            {summary ? (
+              <div className="mt-4">
+                <StatusBadge
+                  value={
+                    summary.coachWritingSource === 'ai'
+                      ? 'Texto por IA'
+                      : 'Texto deterministico'
+                  }
+                />
+              </div>
+            ) : null}
+            <p className="mt-5 text-base leading-7 text-ink/80">
+              {summary?.observation ??
+                'Processe mais partidas para liberar um insight mais claro sobre sua evolucao.'}
+            </p>
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              <InsightBox
+                label="Maior gargalo"
+                value={metricLabels[summary?.mainWeakness ?? 'no_data'] ?? '--'}
+              />
+              <InsightBox
+                label="Base mais confiavel"
+                value={metricLabels[summary?.mainStrength ?? 'no_data'] ?? '--'}
+              />
+              <InsightBox
+                label="Foco da semana"
+                value={metricLabels[summary?.weeklyWeakness ?? 'no_data'] ?? '--'}
+              />
+              <InsightBox
+                label="Padrao positivo"
+                value={metricLabels[summary?.recurringStrength ?? 'no_data'] ?? '--'}
+              />
+            </div>
+            <div className="mt-auto pt-6">
+              <div className="rounded-[28px] bg-pine/10 p-5">
+                <p className="text-xs uppercase tracking-[0.18em] text-pine/70">
+                  Proxima decisao
+                </p>
+                <p className="mt-3 text-sm leading-6 text-ink/75">
+                  Use o plano ao lado como regra de fila: mantenha o ponto forte
+                  ativo e force apenas um ajuste principal por partida.
+                </p>
+              </div>
+            </div>
           </div>
         </Card>
 
-        <Card>
-          <p className="text-xs uppercase tracking-[0.22em] text-ember">
-            Treino sugerido
-          </p>
-          <h2 className="mt-2 text-2xl font-bold text-ink">Plano rapido de hoje</h2>
-          <div className="mt-5 grid gap-3">
-            {(summary?.recommendedTraining?.length
-              ? summary.recommendedTraining
-              : [
-                  'Crie e processe a primeira partida para liberar um treino sugerido.',
-                ]).map((item) => (
-              <div
-                key={item}
-                className="rounded-3xl border border-ink/10 bg-white/70 p-4 text-sm text-ink/80"
-              >
-                {item}
+        <Card className="bg-gradient-to-br from-white via-white to-sand/70">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-xs uppercase tracking-[0.22em] text-ember">
+                Coach atual
+              </p>
+              <h2 className="mt-2 text-2xl font-bold text-ink">
+                Plano de treino da semana
+              </h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-ink/65">
+                O foco abaixo transforma o diagnostico das partidas em aquecimento,
+                regra de jogo e revisao curta.
+              </p>
+            </div>
+            {trainingPlan ? (
+              <div className="flex flex-wrap gap-2">
+                <StatusBadge
+                  value={trainingTrendLabels[trainingPlan.trend] ?? trainingPlan.trend}
+                />
+                <StatusBadge
+                  value={trainingIntensityLabels[trainingPlan.intensity] ?? trainingPlan.intensity}
+                />
               </div>
-            ))}
+            ) : null}
           </div>
-          {summary?.profileMainAgents?.length ? (
-            <div className="mt-5 rounded-3xl bg-sand/70 p-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-ink/50">
-                Agentes principais
-              </p>
-              <p className="mt-2 text-sm text-ink/80">
-                {summary.profileMainAgents.join(', ')}
-              </p>
+
+          {trainingPlanQuery.isError ? (
+            <Notice className="mt-5" tone="error" title="Nao foi possivel carregar o plano de treino.">
+              {getErrorMessage(
+                trainingPlanQuery.error,
+                'Tente recarregar a pagina para gerar ou atualizar o plano.',
+              )}
+            </Notice>
+          ) : null}
+
+          {trainingPlanQuery.isLoading ? (
+            <Notice className="mt-5" title="Gerando leitura de treino...">
+              O RoundCoach esta organizando um foco semanal e uma micro meta para sua proxima fila.
+            </Notice>
+          ) : null}
+
+          {trainingPlan ? (
+            <div className="mt-6 grid gap-5">
+              <div className="grid gap-4 lg:grid-cols-[minmax(0,1.25fr),minmax(260px,0.75fr)]">
+                <div className="rounded-[28px] bg-white p-5 ring-1 ring-ink/10">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <StatusBadge
+                      value={metricLabels[trainingPlan.focusArea] ?? trainingPlan.focusArea}
+                    />
+                    <p className="text-xs uppercase tracking-[0.18em] text-ink/45">
+                      Foco da semana
+                    </p>
+                  </div>
+                  <p className="mt-3 text-2xl font-semibold text-ink">
+                    {trainingPlan.weeklyFocusPlan.title}
+                  </p>
+                  <p className="mt-4 text-sm leading-6 text-ink/75">
+                    {trainingPlan.justification}
+                  </p>
+                  <div className="mt-5 grid gap-2">
+                    {trainingPlan.weeklyFocusPlan.goals.map((goal) => (
+                      <div
+                        key={goal}
+                        className="rounded-2xl bg-sand/70 px-4 py-3 text-sm leading-6 text-ink/80"
+                      >
+                        {goal}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <CoachHighlight
+                  label="Micro meta da proxima fila"
+                  value={trainingPlan.microGoal}
+                  tone="primary"
+                />
+              </div>
+
+              <div className="grid gap-3 lg:grid-cols-3">
+                <TrainingColumn title="Warmup" items={trainingPlan.dailyTrainingPlan.warmup} />
+                <TrainingColumn title="Durante a partida" items={trainingPlan.dailyTrainingPlan.inGame} />
+                <TrainingColumn title="Review" items={trainingPlan.dailyTrainingPlan.review} />
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <CoachHighlight
+                  label="Ponto forte para manter"
+                  value={metricLabels[trainingPlan.mainStrength] ?? trainingPlan.mainStrength}
+                />
+                <CoachHighlight
+                  label="Ajuste prioritario"
+                  value={metricLabels[trainingPlan.mainWeakness] ?? trainingPlan.mainWeakness}
+                />
+              </div>
+
+              {trainingPlan.isOnboarding ? (
+                <Notice title="Plano inicial liberado.">
+                  Conforme mais partidas forem analisadas, esse coach fica mais especifico e mais confiante nas recomendacoes.
+                </Notice>
+              ) : null}
             </div>
           ) : null}
         </Card>
@@ -344,7 +474,7 @@ export function DashboardPage() {
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="text-lg font-semibold text-ink">
-                    {match.map} · {match.agent}
+                    {match.map} - {match.agent}
                   </p>
                   <p className="mt-1 text-sm text-ink/60">
                     {formatDate(match.matchDate)}
@@ -386,6 +516,45 @@ function InsightBox({ label, value }: { label: string; value: string }) {
     <div className="rounded-3xl bg-sand/70 p-4">
       <p className="text-xs uppercase tracking-[0.18em] text-ink/50">{label}</p>
       <p className="mt-2 text-lg font-semibold text-ink">{value}</p>
+    </div>
+  );
+}
+
+function CoachHighlight({
+  label,
+  value,
+  tone = 'default',
+}: {
+  label: string;
+  value: string;
+  tone?: 'default' | 'primary';
+}) {
+  const toneClass =
+    tone === 'primary'
+      ? 'bg-ink text-sand border-ink/10'
+      : 'bg-white/80 text-ink border-ink/10';
+
+  return (
+    <div className={`rounded-[24px] border p-4 ${toneClass}`}>
+      <p className={`text-xs uppercase tracking-[0.18em] ${tone === 'primary' ? 'text-sand/60' : 'text-ink/45'}`}>
+        {label}
+      </p>
+      <p className="mt-3 text-sm font-semibold leading-6">{value}</p>
+    </div>
+  );
+}
+
+function TrainingColumn({ title, items }: { title: string; items: string[] }) {
+  return (
+    <div className="rounded-[28px] border border-ink/10 bg-white/80 p-4">
+      <p className="text-xs uppercase tracking-[0.18em] text-ink/50">{title}</p>
+      <div className="mt-3 grid gap-2">
+        {items.map((item) => (
+          <div key={item} className="rounded-2xl bg-sand/70 px-3 py-3 text-sm leading-6 text-ink/80">
+            {item}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

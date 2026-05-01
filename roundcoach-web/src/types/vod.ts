@@ -1,7 +1,5 @@
-import { PaginatedResponse } from './common';
-
+﻿import { PaginatedResponse } from './common';
 export type VodStatus = 'UPLOADED' | 'PROCESSING' | 'PROCESSED' | 'FAILED';
-
 export interface Vod {
   id: string;
   userId: string;
@@ -13,12 +11,22 @@ export interface Vod {
   createdAt: string;
   updatedAt: string;
 }
-
 export interface CreateVodPayload {
-  matchId: string;
+  matchId?: string;
   fileName: string;
   fileUrl: string;
   durationSeconds?: number;
 }
-
+export interface UploadVodPayload {
+  matchId?: string;
+  file: File;
+  fileName?: string;
+  durationSeconds?: number;
+}
+export interface UpdateVodPayload {
+  matchId?: string;
+  fileName?: string;
+  fileUrl?: string;
+  durationSeconds?: number;
+}
 export type VodsResponse = PaginatedResponse<Vod>;

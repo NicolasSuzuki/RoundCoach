@@ -15,6 +15,7 @@ export class AuthResponseEntity {
         email: string;
         name: string;
         currentRank?: string | null;
+        targetRank?: string | null;
         currentGoal?: string | null;
         mainAgents?: string[];
         mainRole?: string | null;

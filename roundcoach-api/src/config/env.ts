@@ -52,6 +52,38 @@ class EnvironmentVariables {
   @IsOptional()
   @IsString()
   RIOT_API_REGION?: string;
+
+  @IsOptional()
+  @IsString()
+  OPENAI_API_KEY?: string;
+
+  @IsOptional()
+  @IsString()
+  OPENAI_MODEL?: string;
+
+  @IsOptional()
+  @IsIn(['true', 'false'])
+  OPENAI_COACH_WRITER_ENABLED?: 'true' | 'false';
+
+  @IsOptional()
+  @IsIn(['openai', 'ollama'])
+  COACH_WRITER_PROVIDER?: 'openai' | 'ollama';
+
+  @IsOptional()
+  @IsString()
+  COACH_WRITER_BASE_URL?: string;
+
+  @IsOptional()
+  @IsString()
+  COACH_WRITER_API_KEY?: string;
+
+  @IsOptional()
+  @IsString()
+  COACH_WRITER_MODEL?: string;
+
+  @IsOptional()
+  @IsIn(['true', 'false'])
+  COACH_WRITER_ENABLED?: 'true' | 'false';
 }
 
 export function validateEnv(config: Record<string, unknown>): EnvironmentVariables {

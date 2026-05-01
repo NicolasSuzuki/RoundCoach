@@ -6,6 +6,7 @@ import { authConfig } from './config/auth.config';
 import { databaseConfig } from './config/database.config';
 import { queueConfig } from './config/queue.config';
 import { internalConfig } from './config/internal.config';
+import { openaiConfig } from './config/openai.config';
 import { riotConfig } from './config/riot.config';
 import { validateEnv } from './config/env';
 import { OwnershipGuard } from './common/guards/ownership.guard';
@@ -15,8 +16,10 @@ import { AnalysesModule } from './modules/analyses/analyses.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { HealthModule } from './modules/health/health.module';
+import { ImportsModule } from './modules/imports/imports.module';
 import { MatchesModule } from './modules/matches/matches.module';
 import { RiotContentModule } from './modules/riot-content/riot-content.module';
+import { TrainingPlansModule } from './modules/training-plans/training-plans.module';
 import { UsersModule } from './modules/users/users.module';
 import { VodsModule } from './modules/vods/vods.module';
 
@@ -31,6 +34,7 @@ import { VodsModule } from './modules/vods/vods.module';
         databaseConfig,
         queueConfig,
         internalConfig,
+        openaiConfig,
         riotConfig,
       ],
       validate: validateEnv,
@@ -40,9 +44,11 @@ import { VodsModule } from './modules/vods/vods.module';
     UsersModule,
     AuthModule,
     DashboardModule,
+    ImportsModule,
     MatchesModule,
     VodsModule,
     AnalysesModule,
+    TrainingPlansModule,
     RiotContentModule,
     HealthModule,
   ],

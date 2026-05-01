@@ -10,6 +10,7 @@ import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { AuthenticatedUser } from '../../../common/types/authenticated-user.type';
 import { DashboardEvolutionPointEntity } from '../entities/dashboard-evolution-point.entity';
 import { DashboardSummaryEntity } from '../entities/dashboard-summary.entity';
+import { DashboardTrainingPlanEntity } from '../entities/dashboard-training-plan.entity';
 import { DashboardService } from '../services/dashboard.service';
 
 @ApiTags('Dashboard')
@@ -34,6 +35,18 @@ export class DashboardController {
     const evolution = await this.dashboardService.getEvolution(user.id);
     return {
       data: evolution.map((item) => new DashboardEvolutionPointEntity(item)),
+    };
+  }
+
+  @Get('training-plan')
+  @ApiOperation({ summary: 'Retorna o plano de treino atual pronto para o dashboard' })
+  @ApiOkResponse({ type: DashboardTrainingPlanEntity })
+  async getTrainingPlan(@CurrentUser() user: AuthenticatedUser) {
+    const trainingPlan = await this.dashboardService.getTrainingPlan(user.id);
+    return {
+      data: new DashboardTrainingPlanEntity(
+        trainingPlan as DashboardTrainingPlanEntity,
+      ),
     };
   }
 }

@@ -1,0 +1,2 @@
+ALTER TABLE "Vod"
+ADD COLUMN "storagePath" TEXT;

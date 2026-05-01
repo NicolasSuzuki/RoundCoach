@@ -71,6 +71,7 @@ Resumo:
 
 Documentacao consolidada em [docs/architecture.md](C:\Users\Suzuki\OneDrive\Documentos\dev\roundCoach\docs\architecture.md):
 
+- [core-product-objective.md](C:\Users\Suzuki\OneDrive\Documentos\dev\roundCoach\docs\core-product-objective.md)
 - [architecture.md](C:\Users\Suzuki\OneDrive\Documentos\dev\roundCoach\docs\architecture.md)
 - [product-flow.md](C:\Users\Suzuki\OneDrive\Documentos\dev\roundCoach\docs\product-flow.md)
 - [scoring-rules.md](C:\Users\Suzuki\OneDrive\Documentos\dev\roundCoach\docs\scoring-rules.md)

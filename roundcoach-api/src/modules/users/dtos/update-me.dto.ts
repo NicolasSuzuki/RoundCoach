@@ -14,6 +14,12 @@ export class UpdateMeDto {
   @Length(2, 40)
   currentRank?: string;
 
+  @ApiPropertyOptional({ example: 'Immortal 1' })
+  @IsOptional()
+  @IsString()
+  @Length(2, 40)
+  targetRank?: string;
+
   @ApiPropertyOptional({ example: 'Chegar no Immortal com consistencia em ranked' })
   @IsOptional()
   @IsString()

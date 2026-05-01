@@ -14,6 +14,9 @@ export class UserEntity {
   currentRank?: string | null;
 
   @ApiProperty({ required: false, nullable: true })
+  targetRank?: string | null;
+
+  @ApiProperty({ required: false, nullable: true })
   currentGoal?: string | null;
 
   @ApiProperty({ type: String, isArray: true })
@@ -36,6 +39,7 @@ export class UserEntity {
     email: string;
     name: string;
     currentRank?: string | null;
+    targetRank?: string | null;
     currentGoal?: string | null;
     mainAgents?: string[];
     mainRole?: string | null;
@@ -47,6 +51,7 @@ export class UserEntity {
     this.email = data.email;
     this.name = data.name;
     this.currentRank = data.currentRank ?? null;
+    this.targetRank = data.targetRank ?? null;
     this.currentGoal = data.currentGoal ?? null;
     this.mainAgents = data.mainAgents ?? [];
     this.mainRole = data.mainRole ?? null;

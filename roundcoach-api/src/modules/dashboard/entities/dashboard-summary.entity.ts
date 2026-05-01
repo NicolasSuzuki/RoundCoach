@@ -52,6 +52,9 @@ export class DashboardSummaryEntity {
   @ApiProperty({ required: false, nullable: true })
   profileCurrentFocus?: string | null;
 
+  @ApiProperty({ enum: ['ai', 'deterministic'] })
+  coachWritingSource!: 'ai' | 'deterministic';
+
   @ApiProperty()
   observation!: string;
 

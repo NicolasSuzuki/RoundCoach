@@ -49,6 +49,15 @@ export function MatchDetailPage() {
   const vod = vodsQuery.data?.data[0];
   const analysis = analysisQuery.data;
   const coach = analysis?.coach;
+  const scoreboardPlayers = matchQuery.data?.scoreboardPlayers ?? [];
+  const groupedScoreboard = scoreboardPlayers.reduce(
+    (accumulator, player) => {
+      accumulator[player.teamId] ??= [];
+      accumulator[player.teamId].push(player);
+      return accumulator;
+    },
+    {} as Record<string, typeof scoreboardPlayers>,
+  );
   const isProcessing = analysis?.processingStatus === 'PROCESSING';
   const isFailed =
     analysis?.processingStatus === 'FAILED' || vod?.status === 'FAILED';
@@ -194,6 +203,110 @@ export function MatchDetailPage() {
         </Card>
       </div>
 
+      {scoreboardPlayers.length > 0 ? (
+        <Card>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-[0.22em] text-ember">
+                Scoreboard importado
+              </p>
+              <h2 className="mt-2 text-2xl font-bold text-ink">
+                Performance dos jogadores
+              </h2>
+            </div>
+            <span className="rounded-full bg-signal px-4 py-2 text-sm font-semibold text-ink">
+              {scoreboardPlayers.length} jogadores
+            </span>
+          </div>
+
+          <div className="mt-6 grid gap-6">
+            {Object.entries(groupedScoreboard).map(([teamId, players]) => (
+              <div key={teamId} className="overflow-hidden rounded-[24px] border border-ink/10">
+                <div className="flex items-center justify-between bg-ink px-4 py-3 text-sand">
+                  <p className="text-sm font-semibold">Time {teamId}</p>
+                  <p className="text-xs uppercase tracking-[0.18em] text-sand/60">
+                    ACS ordenado
+                  </p>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="min-w-[860px] w-full border-collapse text-sm">
+                    <thead className="bg-sand/80 text-xs uppercase tracking-[0.12em] text-ink/55">
+                      <tr>
+                        <th className="px-4 py-3 text-left">Jogador</th>
+                        <th className="px-4 py-3 text-left">Agente</th>
+                        <th className="px-4 py-3 text-right">ACS</th>
+                        <th className="px-4 py-3 text-right">K</th>
+                        <th className="px-4 py-3 text-right">D</th>
+                        <th className="px-4 py-3 text-right">A</th>
+                        <th className="px-4 py-3 text-right">K/D</th>
+                        <th className="px-4 py-3 text-right">ADR</th>
+                        <th className="px-4 py-3 text-right">HS%</th>
+                        <th className="px-4 py-3 text-right">FK</th>
+                        <th className="px-4 py-3 text-right">FD</th>
+                        <th className="px-4 py-3 text-right">MK</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[...players]
+                        .sort((left, right) => right.acs - left.acs)
+                        .map((player) => (
+                          <tr
+                            key={player.id}
+                            className={`border-t border-ink/10 ${
+                              player.isCurrentUser
+                                ? 'bg-signal/70 ring-2 ring-inset ring-ember/30'
+                                : 'bg-white/70'
+                            }`}
+                          >
+                            <td className="px-4 py-3 font-semibold text-ink">
+                              {player.gameName}
+                              {player.isCurrentUser ? (
+                                <span className="ml-2 rounded-full bg-ember px-2 py-1 text-[10px] uppercase tracking-[0.12em] text-white">
+                                  Voce
+                                </span>
+                              ) : null}
+                              {player.tagLine ? (
+                                <span className="ml-1 text-xs text-ink/45">
+                                  #{player.tagLine}
+                                </span>
+                              ) : null}
+                            </td>
+                            <td className="px-4 py-3 text-ink/70">{player.agent}</td>
+                            <td className="px-4 py-3 text-right font-semibold text-ink">
+                              {formatNumber(player.acs)}
+                            </td>
+                            <td className="px-4 py-3 text-right text-ink">{player.kills}</td>
+                            <td className="px-4 py-3 text-right text-ink">{player.deaths}</td>
+                            <td className="px-4 py-3 text-right text-ink">{player.assists}</td>
+                            <td className="px-4 py-3 text-right font-semibold text-ink">
+                              {formatNumber(player.kills / Math.max(1, player.deaths))}
+                            </td>
+                            <td className="px-4 py-3 text-right text-ink/70">
+                              {formatOptionalNumber(player.adr)}
+                            </td>
+                            <td className="px-4 py-3 text-right text-ink/70">
+                              {formatOptionalNumber(player.headshotPercentage)}
+                            </td>
+                            <td className="px-4 py-3 text-right text-ink/70">
+                              {player.firstKills}
+                            </td>
+                            <td className="px-4 py-3 text-right text-ink/70">
+                              {player.firstDeaths}
+                            </td>
+                            <td className="px-4 py-3 text-right text-ink/70">
+                              {player.multiKills}
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      ) : null}
+
       <Card>
         <div className="flex items-center justify-between gap-4">
           <div>
@@ -208,16 +321,30 @@ export function MatchDetailPage() {
         </div>
 
         <div className="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-5">
-          <MetricCard label="Overall Score" value={formatScore(analysis?.overallScore)} />
-          <MetricCard label="Deaths First" value={formatScore(analysis?.deathsFirst)} />
-          <MetricCard label="Entry Kills" value={formatScore(analysis?.entryKills)} />
+          <MetricCard
+            label="Overall Score"
+            value={formatScore(analysis?.overallScore)}
+            description="Nota geral calculada a partir dos scores de crosshair, utilidade, posicionamento, sobrevivencia inicial e entrada."
+          />
+          <MetricCard
+            label="Deaths First"
+            value={formatScore(analysis?.deathsFirst)}
+            description="Quantidade de rounds em que voce foi a primeira morte. Em partidas importadas, vem dos primeiros duelos do scoreboard."
+          />
+          <MetricCard
+            label="Entry Kills"
+            value={formatScore(analysis?.entryKills)}
+            description="Quantidade de rounds em que voce abriu vantagem com a primeira kill. Em partidas importadas, vem dos primeiros duelos."
+          />
           <MetricCard
             label="Crosshair Score"
             value={formatScore(analysis?.avgCrosshairScore)}
+            description="Score estimado com base em ACS, HS%, saldo de K/D e impacto mecanico no scoreboard."
           />
           <MetricCard
             label="Utility Usage"
             value={formatScore(analysis?.utilityUsageScore)}
+            description="Score estimado com base em assists, ADR e contexto de vitoria ou derrota. Nao mede lineups ou timing de utilidade ainda."
           />
         </div>
 
@@ -225,6 +352,7 @@ export function MatchDetailPage() {
           <MetricCard
             label="Positioning Score"
             value={formatScore(analysis?.positioningScore)}
+            description="Score estimado com base em K/D, ADR, resultado da partida e first deaths. Ainda nao substitui review de VOD."
           />
           <div className="rounded-[28px] bg-sand/70 p-6">
             <p className="text-xs uppercase tracking-[0.18em] text-ink/50">Summary</p>
@@ -318,11 +446,22 @@ function InfoBlock({
   );
 }
 
-function MetricCard({ label, value }: { label: string; value: string }) {
+function MetricCard({
+  label,
+  value,
+  description,
+}: {
+  label: string;
+  value: string;
+  description: string;
+}) {
   return (
-    <div className="rounded-[24px] border border-ink/10 bg-white/70 p-5">
+    <div className="group relative rounded-[24px] border border-ink/10 bg-white/70 p-5">
       <p className="text-xs uppercase tracking-[0.18em] text-ink/50">{label}</p>
       <p className="mt-3 text-3xl font-bold text-ink">{value}</p>
+      <div className="pointer-events-none absolute left-4 right-4 top-[calc(100%-8px)] z-20 rounded-2xl bg-ink px-4 py-3 text-xs leading-5 text-sand opacity-0 shadow-xl transition group-hover:translate-y-2 group-hover:opacity-100">
+        {description}
+      </div>
     </div>
   );
 }
@@ -363,4 +502,12 @@ function CoachHighlight({
       <p className="mt-3 text-sm leading-7 text-ink/75">{text}</p>
     </div>
   );
+}
+
+function formatNumber(value: number) {
+  return Number.isFinite(value) ? value.toFixed(1) : '--';
+}
+
+function formatOptionalNumber(value?: number | null) {
+  return value == null ? '--' : formatNumber(value);
 }

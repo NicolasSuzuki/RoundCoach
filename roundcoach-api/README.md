@@ -36,6 +36,7 @@ Neste repositorio:
 - `matches`
 - `vods`
 - `analyses`
+- `training-plans`
 - `health`
 - `queue`
 
@@ -53,10 +54,12 @@ Fluxo implementado hoje:
 8. o `roundcoach-worker` consome o job e chama o endpoint interno
 9. a `analysis` e atualizada para `COMPLETED` com metricas fake
 10. o `vod.status` e atualizado para `PROCESSED`
+11. o `training-engine` pode transformar o historico recente em um plano de treino ativo
 
 Fluxo futuro:
 
 - substituir metricas fake por processamento real de video no worker
+- enriquecer o treino com contexto mais profundo de VOD
 
 ## Variaveis de ambiente
 
@@ -84,6 +87,30 @@ Observacoes:
 - `QUEUE_NAME` define o nome compartilhado da fila BullMQ.
 - `RIOT_API_KEY` habilita o consumo oficial de `VAL-CONTENT-V1`.
 - sem `RIOT_API_KEY`, a API responde fallback local para mapas e agentes.
+
+## Training Recommendation Engine
+
+O nucleo de treino personalizado vive dentro do proprio `roundcoach-api`.
+
+Estrutura principal:
+
+- `src/domain/training-engine`
+- `src/modules/training-plans`
+
+O motor:
+
+1. busca o perfil do jogador
+2. usa as ultimas partidas com `analysis COMPLETED`
+3. gera diagnostico deterministico
+4. escolhe prioridade, foco e intensidade
+5. monta plano diario, foco semanal e micro meta
+6. persiste um `training_plan` ativo
+
+Regras importantes:
+
+- o plano anterior ativo vira `SUPERSEDED` quando um novo e gerado
+- `GET /api/v1/training-plans/current` gera sob demanda se ainda nao houver plano
+- `GET /api/v1/dashboard/training-plan` consome o plano atual sem mover a regra para o modulo de dashboard
 
 ## Como rodar localmente
 
@@ -252,6 +279,12 @@ Efeito:
 - `GET /api/v1/analyses/:id`
 - `GET /api/v1/matches/:matchId/analysis`
 - `POST /api/v1/internal/analysis-result`
+
+### Training Plans
+
+- `POST /api/v1/training-plans/generate`
+- `GET /api/v1/training-plans/current`
+- `GET /api/v1/dashboard/training-plan`
 
 ### Health
 

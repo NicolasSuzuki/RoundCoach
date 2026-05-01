@@ -52,7 +52,7 @@ export class VodsRepository {
     });
   }
 
-  async update(id: string, data: Prisma.VodUpdateInput): Promise<Vod> {
+  async update(id: string, data: Prisma.VodUncheckedUpdateInput): Promise<Vod> {
     return this.prisma.vod.update({
       where: { id },
       data,

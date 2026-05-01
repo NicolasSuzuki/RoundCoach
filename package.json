@@ -1,15 +1,20 @@
-{
+﻿{
   "name": "roundcoach-workspace",
   "private": true,
   "scripts": {
     "up": "docker compose up --build",
     "up:detached": "docker compose up --build -d",
+    "dev:up": "docker compose -f docker-compose.yml -f docker-compose.dev.yml up",
+    "dev:up:detached": "docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d",
     "bootstrap": "npm run up:detached && npm run migrate",
     "down": "docker compose down",
+    "dev:down": "docker compose -f docker-compose.yml -f docker-compose.dev.yml down",
     "logs": "docker compose logs -f",
+    "dev:logs": "docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f",
     "reset": "docker compose down -v --remove-orphans",
     "migrate": "docker compose exec api npx prisma migrate deploy",
     "ps": "docker compose ps",
-    "quality:check": "npm --prefix roundcoach-api run lint && npm --prefix roundcoach-api test && npm --prefix roundcoach-api run build && npm --prefix roundcoach-worker run lint && npm --prefix roundcoach-worker run build && npm --prefix roundcoach-web run lint && npm --prefix roundcoach-web run build"
+    "quality:check": "npm --prefix roundcoach-api run lint && npm --prefix roundcoach-api test && npm --prefix roundcoach-api run build && npm --prefix roundcoach-worker run lint && npm --prefix roundcoach-worker run build && npm --prefix roundcoach-web run lint && npm --prefix roundcoach-web run build",
+    "import:valorant": "node scripts/valorant-local-import.mjs"
   }
 }

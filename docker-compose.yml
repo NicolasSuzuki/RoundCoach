@@ -35,6 +35,8 @@ services:
       dockerfile: Dockerfile
     container_name: roundcoach-api
     restart: unless-stopped
+    env_file:
+      - ./roundcoach-api/.env
     depends_on:
       postgres:
         condition: service_healthy

@@ -1,5 +1,9 @@
 # Architecture
 
+Referencia principal de produto:
+
+- [core-product-objective.md](C:\Users\Suzuki\OneDrive\Documentos\dev\roundCoach\docs\core-product-objective.md)
+
 ## Workspace
 
 O workspace e dividido em 3 repos ativos:

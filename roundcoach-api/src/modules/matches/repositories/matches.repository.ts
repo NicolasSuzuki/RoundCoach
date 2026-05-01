@@ -72,6 +72,11 @@ export class MatchesRepository {
   async findById(id: string): Promise<Match | null> {
     return this.prisma.match.findUnique({
       where: { id },
+      include: {
+        scoreboardPlayers: {
+          orderBy: [{ teamId: 'asc' }, { acs: 'desc' }],
+        },
+      },
     });
   }
 
