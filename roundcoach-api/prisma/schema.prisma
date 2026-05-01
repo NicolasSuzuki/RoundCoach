@@ -157,8 +157,9 @@ model Analysis {
   createdAt           DateTime                 @default(now())
   updatedAt           DateTime                 @updatedAt
 
-  match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
-  vod   Vod?  @relation(fields: [vodId], references: [id], onDelete: SetNull)
+  match                 Match                    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  vod                   Vod?                     @relation(fields: [vodId], references: [id], onDelete: SetNull)
+  coachSnapshot         AnalysisCoachSnapshot?
 
   @@index([processingStatus])
 }
@@ -182,10 +183,24 @@ model TrainingPlan {
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  coachSnapshot TrainingPlanCoachSnapshot?
 
   @@index([userId, status])
   @@index([createdAt])
+}
+
+model TrainingPlanCoachSnapshot {
+  id             String   @id @default(cuid())
+  trainingPlanId String   @unique
+  signature      String
+  payload        Json
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  trainingPlan TrainingPlan @relation(fields: [trainingPlanId], references: [id], onDelete: Cascade)
+
+  @@index([updatedAt])
 }
 
 model DashboardSummarySnapshot {
@@ -197,6 +212,19 @@ model DashboardSummarySnapshot {
   updatedAt DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([updatedAt])
+}
+
+model AnalysisCoachSnapshot {
+  id        String   @id @default(cuid())
+  analysisId String  @unique
+  signature String
+  payload   Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  analysis Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
 
   @@index([updatedAt])
 }

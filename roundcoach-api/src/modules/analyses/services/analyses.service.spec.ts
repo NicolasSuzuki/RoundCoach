@@ -43,6 +43,11 @@ describe('AnalysesService', () => {
     const analysisUpdateMock = jest.fn().mockResolvedValue({
       id: 'analysis-1',
       processingStatus: AnalysisProcessingStatus.COMPLETED,
+      summary: 'Worker completed the analysis.',
+      updatedAt: new Date('2026-05-01T15:00:00.000Z'),
+    });
+    const snapshotUpsertMock = jest.fn().mockResolvedValue({
+      analysisId: 'analysis-1',
     });
     const vodUpdateMock = jest.fn().mockResolvedValue({
       id: 'vod-1',
@@ -53,6 +58,9 @@ describe('AnalysesService', () => {
       return callback({
         analysis: {
           update: analysisUpdateMock,
+        },
+        analysisCoachSnapshot: {
+          upsert: snapshotUpsertMock,
         },
         vod: {
           update: vodUpdateMock,
@@ -89,10 +97,37 @@ describe('AnalysesService', () => {
       where: { id: 'vod-1' },
       data: { status: VodStatus.PROCESSED },
     });
+    expect(snapshotUpsertMock).toHaveBeenCalledTimes(1);
+    expect(snapshotUpsertMock).toHaveBeenCalledWith({
+      where: { analysisId: 'analysis-1' },
+      create: expect.objectContaining({
+        analysisId: 'analysis-1',
+        signature: expect.any(String),
+        payload: expect.objectContaining({
+          overallScore: expect.any(Number),
+          focusSuggestion: expect.any(String),
+          microGoal: expect.any(String),
+          recommendedTraining: expect.any(Array),
+          summary: 'Worker completed the analysis.',
+        }),
+      }),
+      update: expect.objectContaining({
+        signature: expect.any(String),
+        payload: expect.objectContaining({
+          overallScore: expect.any(Number),
+          focusSuggestion: expect.any(String),
+          microGoal: expect.any(String),
+          recommendedTraining: expect.any(Array),
+          summary: 'Worker completed the analysis.',
+        }),
+      }),
+    });
     expect(result).toEqual({
       analysis: {
         id: 'analysis-1',
         processingStatus: AnalysisProcessingStatus.COMPLETED,
+        summary: 'Worker completed the analysis.',
+        updatedAt: new Date('2026-05-01T15:00:00.000Z'),
       },
       vod: {
         id: 'vod-1',

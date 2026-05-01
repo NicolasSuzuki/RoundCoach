@@ -343,6 +343,13 @@ export function DashboardPage() {
             {trainingPlan ? (
               <div className="flex flex-wrap gap-2">
                 <StatusBadge
+                  value={
+                    trainingPlan.coachWritingSource === 'ai'
+                      ? 'Texto por IA'
+                      : 'Texto deterministico'
+                  }
+                />
+                <StatusBadge
                   value={trainingTrendLabels[trainingPlan.trend] ?? trainingPlan.trend}
                 />
                 <StatusBadge

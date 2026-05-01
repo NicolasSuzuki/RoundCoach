@@ -58,6 +58,27 @@ type DashboardSummaryPayload = {
   recommendedTraining: string[];
 };
 
+type DashboardTrainingPlanPayload = {
+  focusArea: string;
+  dailyTrainingPlan: {
+    warmup: string[];
+    inGame: string[];
+    review: string[];
+  };
+  weeklyFocusPlan: {
+    title: string;
+    goals: string[];
+  };
+  microGoal: string;
+  justification: string;
+  trend: string;
+  mainWeakness: string;
+  mainStrength: string;
+  intensity: string;
+  isOnboarding: boolean;
+  coachWritingSource: 'ai' | 'deterministic';
+};
+
 @Injectable()
 export class DashboardService {
   constructor(
@@ -209,20 +230,69 @@ export class DashboardService {
   }
 
   async getTrainingPlan(userId: string) {
-    const plan = await this.trainingEngineService.getCurrentPlan(userId);
+    const [plan, profile] = await Promise.all([
+      this.trainingEngineService.getCurrentPlan(userId),
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          currentRank: true,
+          currentGoal: true,
+          mainAgents: true,
+          mainRole: true,
+          currentFocus: true,
+          updatedAt: true,
+        },
+      }),
+    ]);
+    const signature = this.buildTrainingPlanSignature({ plan, profile });
+    const cachedSnapshot = await this.prisma.trainingPlanCoachSnapshot.findUnique({
+      where: { trainingPlanId: plan.id },
+    });
 
-    return {
+    if (cachedSnapshot?.signature === signature) {
+      return cachedSnapshot.payload as unknown as DashboardTrainingPlanPayload;
+    }
+
+    const coachWriting = await this.coachWriterService.writeTrainingPlan({
+      plan,
+      profile,
+    });
+
+    const payload: DashboardTrainingPlanPayload = {
       focusArea: plan.focusArea,
-      dailyTrainingPlan: plan.dailyTrainingPlan,
-      weeklyFocusPlan: plan.weeklyFocusPlan,
-      microGoal: plan.microGoal,
-      justification: plan.justification,
+      dailyTrainingPlan: {
+        warmup: coachWriting.warmup,
+        inGame: coachWriting.inGame,
+        review: coachWriting.review,
+      },
+      weeklyFocusPlan: {
+        title: coachWriting.weeklyFocusTitle,
+        goals: coachWriting.weeklyGoals,
+      },
+      microGoal: coachWriting.microGoal,
+      justification: coachWriting.justification,
       trend: plan.trend,
       mainWeakness: plan.mainWeakness,
       mainStrength: plan.mainStrength,
       intensity: plan.intensity,
       isOnboarding: plan.isOnboarding,
+      coachWritingSource: coachWriting.source,
     };
+
+    await this.prisma.trainingPlanCoachSnapshot.upsert({
+      where: { trainingPlanId: plan.id },
+      create: {
+        trainingPlanId: plan.id,
+        signature,
+        payload: payload as Prisma.InputJsonValue,
+      },
+      update: {
+        signature,
+        payload: payload as Prisma.InputJsonValue,
+      },
+    });
+
+    return payload;
   }
 
   private async getCompletedAnalyses(userId: string): Promise<DashboardAnalysis[]> {
@@ -331,6 +401,53 @@ export class DashboardService {
 
     return createHash('sha256')
       .update(JSON.stringify(sourcePayload))
+      .digest('hex');
+  }
+
+  private buildTrainingPlanSignature(input: {
+    plan: Awaited<ReturnType<TrainingEngineService['getCurrentPlan']>>;
+    profile:
+      | {
+          currentRank: string | null;
+          currentGoal: string | null;
+          mainAgents: string[];
+          mainRole: string | null;
+          currentFocus: string | null;
+          updatedAt: Date;
+        }
+      | null;
+  }): string {
+    return createHash('sha256')
+      .update(
+        JSON.stringify({
+          plan: {
+            id: input.plan.id,
+            version: input.plan.version,
+            updatedAt: input.plan.updatedAt.toISOString(),
+            focusArea: input.plan.focusArea,
+            mainWeakness: input.plan.mainWeakness,
+            mainStrength: input.plan.mainStrength,
+            intensity: input.plan.intensity,
+            trend: input.plan.trend,
+            weeklyFocusPlan: input.plan.weeklyFocusPlan,
+            dailyTrainingPlan: input.plan.dailyTrainingPlan,
+            microGoal: input.plan.microGoal,
+            justification: input.plan.justification,
+            isOnboarding: input.plan.isOnboarding,
+            sampleSize: input.plan.sampleSize,
+          },
+          profile: input.profile
+            ? {
+                currentRank: input.profile.currentRank,
+                currentGoal: input.profile.currentGoal,
+                mainAgents: input.profile.mainAgents,
+                mainRole: input.profile.mainRole,
+                currentFocus: input.profile.currentFocus,
+                updatedAt: input.profile.updatedAt.toISOString(),
+              }
+            : null,
+        }),
+      )
       .digest('hex');
   }
 }

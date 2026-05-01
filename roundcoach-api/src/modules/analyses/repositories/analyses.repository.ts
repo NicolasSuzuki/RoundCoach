@@ -10,6 +10,7 @@ export class AnalysesRepository {
     return this.prisma.analysis.findUnique({
       where: { id },
       include: {
+        coachSnapshot: true,
         match: {
           select: {
             userId: true,
@@ -23,6 +24,7 @@ export class AnalysesRepository {
     return this.prisma.analysis.findUnique({
       where: { matchId },
       include: {
+        coachSnapshot: true,
         match: {
           select: {
             userId: true,

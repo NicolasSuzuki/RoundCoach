@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { AnalysisProcessingStatus } from '@prisma/client';
 import { buildAnalysisInsights } from '../../../domain/insight-engine/insight-engine';
 import { AnalysisCoachEntity } from './analysis-coach.entity';
+import { AnalysisCoachSnapshotEntity } from './analysis-coach-snapshot.entity';
 
 export class AnalysisEntity {
   @ApiProperty()
@@ -40,6 +41,9 @@ export class AnalysisEntity {
   @ApiPropertyOptional({ type: AnalysisCoachEntity })
   coach?: AnalysisCoachEntity | null;
 
+  @ApiPropertyOptional({ type: AnalysisCoachSnapshotEntity })
+  coachSnapshot?: AnalysisCoachSnapshotEntity | null;
+
   @ApiProperty()
   createdAt!: Date;
 
@@ -58,6 +62,7 @@ export class AnalysisEntity {
     positioningScore?: number | null;
     summary?: string | null;
     overallScore?: number | null;
+    coachSnapshot?: AnalysisCoachSnapshotEntity | null;
     createdAt: Date;
     updatedAt: Date;
   }) {
@@ -71,6 +76,9 @@ export class AnalysisEntity {
     this.utilityUsageScore = data.utilityUsageScore;
     this.positioningScore = data.positioningScore;
     this.summary = data.summary;
+    this.coachSnapshot = data.coachSnapshot
+      ? new AnalysisCoachSnapshotEntity(data.coachSnapshot)
+      : null;
     const canBuildCoach =
       data.processingStatus === AnalysisProcessingStatus.COMPLETED &&
       data.deathsFirst != null &&
@@ -80,9 +88,14 @@ export class AnalysisEntity {
       data.positioningScore != null;
 
     if (canBuildCoach) {
-      const insights = buildAnalysisInsights(data);
-      this.overallScore = insights.overallScore;
-      this.coach = new AnalysisCoachEntity(insights);
+      if (this.coachSnapshot) {
+        this.overallScore = this.coachSnapshot.overallScore;
+        this.coach = new AnalysisCoachEntity(this.coachSnapshot);
+      } else {
+        const insights = buildAnalysisInsights(data);
+        this.overallScore = insights.overallScore;
+        this.coach = new AnalysisCoachEntity(insights);
+      }
     } else {
       this.overallScore = data.overallScore ?? null;
       this.coach = null;

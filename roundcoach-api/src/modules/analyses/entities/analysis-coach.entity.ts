@@ -4,6 +4,21 @@ import {
   AnalysisMetricKey,
 } from '../../../domain/insight-engine/insight-engine';
 
+type AnalysisCoachPayload = Pick<
+  AnalysisInsights,
+  | 'overallScore'
+  | 'scenario'
+  | 'strengthKey'
+  | 'strengthLabel'
+  | 'strengthText'
+  | 'weaknessKey'
+  | 'weaknessLabel'
+  | 'weaknessText'
+  | 'focusSuggestion'
+  | 'microGoal'
+  | 'recommendedTraining'
+>;
+
 export class AnalysisCoachEntity {
   @ApiProperty()
   overallScore!: number;
@@ -38,7 +53,7 @@ export class AnalysisCoachEntity {
   @ApiProperty({ type: String, isArray: true })
   recommendedTraining!: string[];
 
-  constructor(data: AnalysisInsights) {
+  constructor(data: AnalysisCoachPayload) {
     this.overallScore = data.overallScore;
     this.scenario = data.scenario;
     this.strengthKey = data.strengthKey;

@@ -50,6 +50,9 @@ export class DashboardTrainingPlanEntity {
   @ApiProperty()
   isOnboarding!: boolean;
 
+  @ApiProperty({ enum: ['ai', 'deterministic'] })
+  coachWritingSource!: 'ai' | 'deterministic';
+
   constructor(data: DashboardTrainingPlanEntity) {
     Object.assign(this, data);
   }

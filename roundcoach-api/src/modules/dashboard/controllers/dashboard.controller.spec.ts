@@ -22,6 +22,7 @@ describe('DashboardController', () => {
         mainStrength: 'crosshair',
         intensity: 'medium',
         isOnboarding: false,
+        coachWritingSource: 'ai',
       }),
     } as unknown as DashboardService;
     const controller = new DashboardController(service);

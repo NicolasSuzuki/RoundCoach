@@ -46,4 +46,5 @@ export interface DashboardTrainingPlan {
   mainStrength: string;
   intensity: string;
   isOnboarding: boolean;
+  coachWritingSource: 'ai' | 'deterministic';
 }

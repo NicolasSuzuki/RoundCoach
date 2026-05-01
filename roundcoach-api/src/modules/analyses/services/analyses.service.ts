@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { createHash } from 'node:crypto';
 import {
   Analysis,
   AnalysisProcessingStatus,
@@ -163,6 +164,53 @@ export class AnalysesService {
         },
       });
 
+      if (dto.processingStatus === AnalysisProcessingStatus.COMPLETED && completedInsights) {
+        const signature = this.buildCoachSnapshotSignature({
+          updatedAt: analysis.updatedAt,
+          summary: analysis.summary,
+          insights: completedInsights,
+        });
+
+        await transaction.analysisCoachSnapshot.upsert({
+          where: { analysisId: analysis.id },
+          create: {
+            analysisId: analysis.id,
+            signature,
+            payload: {
+              overallScore: completedInsights.overallScore,
+              scenario: completedInsights.scenario,
+              strengthKey: completedInsights.strengthKey,
+              strengthLabel: completedInsights.strengthLabel,
+              strengthText: completedInsights.strengthText,
+              weaknessKey: completedInsights.weaknessKey,
+              weaknessLabel: completedInsights.weaknessLabel,
+              weaknessText: completedInsights.weaknessText,
+              focusSuggestion: completedInsights.focusSuggestion,
+              microGoal: completedInsights.microGoal,
+              recommendedTraining: completedInsights.recommendedTraining,
+              summary: analysis.summary,
+            } as Prisma.InputJsonValue,
+          },
+          update: {
+            signature,
+            payload: {
+              overallScore: completedInsights.overallScore,
+              scenario: completedInsights.scenario,
+              strengthKey: completedInsights.strengthKey,
+              strengthLabel: completedInsights.strengthLabel,
+              strengthText: completedInsights.strengthText,
+              weaknessKey: completedInsights.weaknessKey,
+              weaknessLabel: completedInsights.weaknessLabel,
+              weaknessText: completedInsights.weaknessText,
+              focusSuggestion: completedInsights.focusSuggestion,
+              microGoal: completedInsights.microGoal,
+              recommendedTraining: completedInsights.recommendedTraining,
+              summary: analysis.summary,
+            } as Prisma.InputJsonValue,
+          },
+        });
+      }
+
       const updatedVod = await transaction.vod.update({
         where: { id: dto.vodId },
         data: {
@@ -200,5 +248,27 @@ export class AnalysesService {
       utilityUsageScore: simulated.utilityUsageScore,
       positioningScore: simulated.positioningScore,
     });
+  }
+
+  private buildCoachSnapshotSignature(input: {
+    updatedAt: Date;
+    summary: string | null;
+    insights: ReturnType<typeof buildAnalysisInsights>;
+  }): string {
+    return createHash('sha256')
+      .update(
+        JSON.stringify({
+          updatedAt: input.updatedAt.toISOString(),
+          summary: input.summary,
+          overallScore: input.insights.overallScore,
+          scenario: input.insights.scenario,
+          strengthKey: input.insights.strengthKey,
+          weaknessKey: input.insights.weaknessKey,
+          focusSuggestion: input.insights.focusSuggestion,
+          microGoal: input.insights.microGoal,
+          recommendedTraining: input.insights.recommendedTraining,
+        }),
+      )
+      .digest('hex');
   }
 }
